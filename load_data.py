@@ -5,33 +5,26 @@ import pandas_datareader as web
 import numpy as np
 
 if __name__ == '__main__':
-    ticker_names = np.asarray(pd.read_csv('tickers.txt', delimiter=',', encoding="utf-8-sig").values.tolist()).flatten()
+    ticker_names = np.asarray(pd.read_csv('tickers.txt', delimiter=',', encoding="utf-8-sig", header=None).values.tolist()).flatten()
     start = dt.datetime(2015, 1, 1)
     end = dt.datetime.now()
     data = []
     #data = pd.read_csv('data.txt', delimiter=',', encoding='utf-8-sig', header=None)
-    #print(data)
     i = 0
     for name in ticker_names:
+        recieved_data = False
         print(i)
-        try:
-            df = web.DataReader(name, 'av-daily', start, end, api_key='XBSV0WW2LIIXV95A')
-            df = df[['open', 'close']].values.flatten()
-            data.append(df)
-            time.sleep(20)
-        except web._utils.RemoteDataError:
-            print(name)
-            time.sleep(20)
+        temp_ticker_names = ticker_names[i + 1:]
+        while not recieved_data:
             try:
-                df = web.DataReader(name, 'av-daily', start, end, api_key='XBSV0WW2LIIXV95A')
+                df = web.DataReader(name, 'av-daily', start, end, api_key='L43U3XRM44TNHHE7')
                 df = df[['open', 'close']].values.flatten()
+                data.append(df)
+                np.savetxt('data.txt', data, fmt='%s', delimiter=',')
+                np.savetxt('tickers.txt', temp_ticker_names, fmt='%s', delimiter=',')
+                time.sleep(1)
             except web._utils.RemoteDataError:
-                print(name)
-                time.sleep(20)
-                df = web.DataReader(name, 'av-daily', start, end, api_key='XBSV0WW2LIIXV95A')
-                df = df[['open', 'close']].values.flatten()
+                time.sleep(10)
+            else:
+                recieved_data = True
         i += 1
-
-    data = pd.DataFrame(data)
-    print(data)
-    np.savetxt('data.txt', data.values, fmt='%f', delimiter=',')
