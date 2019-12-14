@@ -6,8 +6,9 @@ from disc import Discriminator
 
 BUFFER_SIZE = 1000
 BATCH_SIZE = 250
-NUM_BATCHES = int(np.ceil(1000/250))
+NUM_BATCHES = int(np.ceil(BUFFER_SIZE/BATCH_SIZE))
 NUM_EPOCHS = 100
+
 
 def discriminator_loss(real_output, fake_output):
     real_loss = real_output
@@ -15,11 +16,14 @@ def discriminator_loss(real_output, fake_output):
     total_loss = real_loss + fake_loss
     return total_loss
 
+
 def generator_loss(fake_output):
     return fake_output
 
+
 def train_step(data, labels, gen_model, disc_model):
-    noise = np.random.normal()
+    num_attr = len(data.columns)
+    noise = np.random.normal(size=(num_attr,))
     generated_samples = gen_model(noise)
 
     fake_output = disc_model(generated_samples)
@@ -32,8 +36,9 @@ def train_step(data, labels, gen_model, disc_model):
 
 
 def train(data, labels):
-    gen_model = Generator()
-    disc_model = Discriminator()
+    num_attr = len(data.columns)
+    gen_model = Generator(num_attr)
+    disc_model = Discriminator(num_attr)
     gens = []
     discs = []
     for epoch in range(NUM_EPOCHS):
