@@ -10,8 +10,8 @@ from load_data import load
 
 
 def discriminator_loss(real_output, fake_output, loss):
-    real_target = torch.ones(torch.np(real_output))
-    fake_target = torch.zeros(torch.np(fake_output))
+    real_target = torch.ones(np.shape(real_output))
+    fake_target = torch.zeros(np.shape(fake_output))
     real_loss = loss(real_output, real_target)
     fake_loss = loss(fake_output, fake_target)
     total_loss = real_loss + fake_loss
@@ -23,36 +23,34 @@ def generator_loss(fake_output, loss):
     return loss(fake_output, fake_target)
 
 
-def train_step(data, labels, gen_model, disc_model):
-    num_attr = len(data.columns)
-    pos_weights = torch.ones((BATCH_SIZE,))
-    loss = nn.BCEWithLogitsLoss(pos_weights=pos_weights)
-    noise = np.random.normal(size=(num_attr,))
-    generated_samples = gen_model(noise)
-
+def train_step(data, label, num_attr, gen_model, disc_model, BATCH_SIZE):
+    pos_weight = torch.ones((BATCH_SIZE,))
+    loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    generated_samples = gen_model(data)
+    prices = data[:][4]
     fake_output = disc_model(generated_samples)
-    real_output = disc_model(data)
+    real_output = disc_model(label)
 
     gen_loss = generator_loss(fake_output, loss)
     disc_loss = discriminator_loss(real_output, fake_output, loss)
-    return gen_loss, disc_loss
+    return gen_loss, disc_loss, gen_model, disc_model
 
 
-def train(data):
-    learning_rate = 0.01
-    NUM_EPOCHS = 100
-    num_attr = len(data.columns)
-    gen_model = Generator(num_attr)
-    gen_opt = optim.SGD(gen_model.parameters(), lr=learning_rate)
+def train(data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES):
+    gen_model = Generator(num_attr, minibatch_size)
+    gen_opt = optim.SGD(gen_model.parameters(), lr=LEARNING_RATE)
     disc_model = Discriminator(num_attr)
-    disc_opt = optim.SGD(disc_model.parameters(), lr=learning_rate)
+    disc_opt = optim.SGD(disc_model.parameters(), lr=LEARNING_RATE)
     gens = []
     discs = []
     for epoch in range(NUM_EPOCHS):
-        for data_batch in data:
+        for i in range(NUM_BATCHES):
             gen_opt.zero_grad()  # zero the gradient buffers
             disc_opt.zero_grad()
-            gen_loss, disc_loss = train_step(data_batch, gen_model, disc_model)
+            data_batch = data[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
+            label = data_batch[len(data_batch)-1][4]
+            data_batch = data_batch[:len(data_batch)-1]
+            gen_loss, disc_loss, gen_model, disc_model = train_step(data_batch, label, num_attr, gen_model, disc_model, BATCH_SIZE)
             gen_loss.backward()
             disc_loss.backward()
             gen_opt.step()
@@ -68,24 +66,17 @@ def train(data):
 
 
 if __name__ == '__main__':
-    competitors = ['AVVIY', 'JEF', 'PGR', 'AIG', 'STFGX', 'BLK']
-    data = load('BRK.A', 'BRK.B', competitors)
-    num_days = len(data.columns) / 5
+    LEARNING_RATE = 0.01
+    NUM_EPOCHS = 100
+    data = pd.read_csv('data.txt', delimiter=',', header=None)
+    num_days = len(data) / 5
     BATCH_SIZE = 250
     train_days = int(np.ceil(num_days * (3 / 5)))
-    NUM_BATCHES = int(np.ceil(train_days / BATCH_SIZE))
-    #test_days = num_days - train_days
+    NUM_BATCHES = int(np.floor(train_days / BATCH_SIZE))
+    num_attr = len(data.columns)
+    train_data = torch.from_numpy(data[:train_days].values.astype(np.float32))
+    test_data = torch.from_numpy(data[train_days+1:].values.astype(np.float32))
+    minibatch_size = 50
 
-    ###BATCHING DOES NOT WORK
-
-    raw_train_data = np.reshape(data[:train_days].to_numpy(), (train_days, 5))
-    #raw_test_data = np.reshape(data[train_days + 1:].to_numpy(), (test_days, 5))
-
-    batched_train_data = []
-    for batch in range(NUM_BATCHES):
-        temp = raw_train_data[batch * BATCH_SIZE: (batch + 1) * BATCH_SIZE]
-        batched_train_data[batch] = temp
-
-    gens, discs, generator, discriminator = train(batched_train_data)
-
+    gens, discs, generator, discriminator = train(train_data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES)
 
