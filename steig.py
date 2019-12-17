@@ -42,7 +42,7 @@ def genEig(data, bufSz, gap, pDex, s = True, v = False, saveState = None):
         tempMat = []
         #create a list to store the sequence for this eigenvector
         outCst.append([data[bufSz + i + gap][pDex]])
-        outMot.append([(data[bufSz + i + gap] - data[bufSz + i]) / gap])
+        outMot.append([(data[bufSz + i + gap][pDex] - data[bufSz + i][pDex]) / gap])
         
         for j in range(eigPoints):
             tempMat.append(data[i + (j * gap)])
