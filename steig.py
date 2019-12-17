@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import sklearn.decomposition as dc
 import sklearn.preprocessing as pp
@@ -10,7 +11,17 @@ def loadData(fileName):
 # bufSz     size of eigencombing buffer
 # gap       space between samples
 # pDex      index of the current price in the feature vector
-def genEig(data, bufSz, gap, pDex, s = True, v = False):
+# s         show status?
+# v         show each eigenvector?
+# saveState name of the savefile, or none if no save/load desired
+def genEig(data, bufSz, gap, pDex, s = True, v = False, saveState = None):
+    #load the data if it exists
+    if saveState != None:
+        if os.path.exists("data/" + saveState + ".npz"):
+            with np.load("data/" + saveState + ".npz") as retcon:
+                print("loaded data file!", "data/" + saveState + ".npz")
+                return retcon['a'], retcon['b'], retcon['c']
+
     print("working!")
     if (data.shape[1] >= (bufSz / gap)):
         print("your buffer is a bit small")
@@ -47,7 +58,14 @@ def genEig(data, bufSz, gap, pDex, s = True, v = False):
         if v: print(eVec)
         outEig.append(eVec)
 
+    if saveState != None:
+        print("saving data file!", "data/" + saveState + ".npz")
+        if not os.path.exists("data"):
+            os.makedirs("data")
+        zFile = open(("data/" + saveState + ".npz"), "w+")
+        np.savez(("data/" + saveState + ".npz"), a = outEig, b = outCst, c = outMot)
+
     return outEig, outCst, outMot
 
 #test code
-#a, b, c = genEig(loadData('data.txt'), 256, 2, 5, False)
+#a, b, c = genEig(loadData('data.txt'), 256, 2, 5, "candid", False)
