@@ -60,6 +60,7 @@ def get_av_data(symbol, type='av-daily-adjusted'):
             data_received = True
     return data
 
+
 def load(company1, company2, competitors):
     c1 = get_av_data(company1)
     c1 = get_technical_indicators(c1)
@@ -77,16 +78,17 @@ def load(company1, company2, competitors):
         data = get_av_data(name)
         c1[name] = data['adjusted close']
 
-    return c1
-
-
-if __name__ == '__main__':
-    competitors = ['AVVIY', 'JEF', 'PGR', 'AIG', 'STFGX', 'BLK']
-    data = load('BRK.A', 'BRK.B', competitors)
     for i, col in data.items():
         if np.sum(np.isna(col)) > 0:
             for j, val in zip(range(len(col)), col):
                 if val.isna():
                     col[j] = np.mean(col)
             data[[i]] = col
+            
+    return c1
+
+
+if __name__ == '__main__':
+    competitors = ['AVVIY', 'JEF', 'PGR', 'AIG', 'STFGX', 'BLK']
+    data = load('BRK.A', 'BRK.B', competitors)
     exit(0)
