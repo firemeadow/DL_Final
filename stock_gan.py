@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib as plt
 from gen import Generator
 from disc import Discriminator
-from load_data import load
 
 
 def discriminator_loss(real_output, fake_output, loss):
@@ -23,12 +22,13 @@ def generator_loss(fake_output, loss):
     return loss(fake_output, fake_target)
 
 
-def train_step(data, label, num_attr, gen_model, disc_model, BATCH_SIZE):
-    pos_weight = torch.ones((BATCH_SIZE,))
+def train_step(data, label, gen_model, disc_model):
+    pos_weight = torch.ones((1,))
     loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    generated_samples = gen_model(data)
-    prices = data[:][4]
-    fake_output = disc_model(generated_samples)
+    generated_price = gen_model(data).view(1, 1, 1)
+    label = label.view(1, 1, 1)
+    print(generated_price)
+    fake_output = disc_model(generated_price)
     real_output = disc_model(label)
 
     gen_loss = generator_loss(fake_output, loss)
@@ -36,10 +36,10 @@ def train_step(data, label, num_attr, gen_model, disc_model, BATCH_SIZE):
     return gen_loss, disc_loss, gen_model, disc_model
 
 
-def train(data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES):
-    gen_model = Generator(num_attr, minibatch_size)
+def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, prices):
+    gen_model = Generator(num_attr)
     gen_opt = optim.SGD(gen_model.parameters(), lr=LEARNING_RATE)
-    disc_model = Discriminator(num_attr)
+    disc_model = Discriminator()
     disc_opt = optim.SGD(disc_model.parameters(), lr=LEARNING_RATE)
     gens = []
     discs = []
@@ -47,12 +47,15 @@ def train(data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE,
         for i in range(NUM_BATCHES):
             gen_opt.zero_grad()  # zero the gradient buffers
             disc_opt.zero_grad()
-            data_batch = data[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
-            label = data_batch[len(data_batch)-1][4]
-            data_batch = data_batch[:len(data_batch)-1]
-            gen_loss, disc_loss, gen_model, disc_model = train_step(data_batch, label, num_attr, gen_model, disc_model, BATCH_SIZE)
-            gen_loss.backward()
-            disc_loss.backward()
+            data_batch = data[i:i+BATCH_SIZE]
+            label = prices[0][i+BATCH_SIZE]
+            gen_loss, disc_loss, gen_model, disc_model = train_step(data_batch, label, gen_model, disc_model)
+            if epoch is not NUM_EPOCHS-1:
+                gen_loss.backward(retain_graph=True)
+                disc_loss.backward(retain_graph=True)
+            else:
+                gen_loss.backward()
+                disc_loss.backward()
             gen_opt.step()
             disc_opt.step()
 
@@ -66,17 +69,17 @@ def train(data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE,
 
 
 if __name__ == '__main__':
-    LEARNING_RATE = 0.01
-    NUM_EPOCHS = 100
     data = pd.read_csv('data.txt', delimiter=',', header=None)
     num_days = len(data) / 5
-    BATCH_SIZE = 250
     train_days = int(np.ceil(num_days * (3 / 5)))
-    NUM_BATCHES = int(np.floor(train_days / BATCH_SIZE))
     num_attr = len(data.columns)
+    LEARNING_RATE = 0.01
+    NUM_EPOCHS = 100
+    BATCH_SIZE = 50
+    NUM_BATCHES = train_days - BATCH_SIZE
+    prices = torch.from_numpy(data[:train_days][4].values.astype(np.float32)).view(1, train_days)
     train_data = torch.from_numpy(data[:train_days].values.astype(np.float32))
     test_data = torch.from_numpy(data[train_days+1:].values.astype(np.float32))
-    minibatch_size = 50
 
-    gens, discs, generator, discriminator = train(train_data, num_attr, minibatch_size, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES)
+    gens, discs, generator, discriminator = train(train_data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, prices)
 

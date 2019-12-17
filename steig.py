@@ -43,11 +43,22 @@ def genEig(data, bufSz, gap, pDex, s = True, v = False):
         #calculate the eigenvector over the gapped points
         if s or v: print("calculating primary component: ", i)
         pFunc = dc.PCA(n_components = 1)
+<<<<<<< HEAD
         eVec = pFunc.fit_transform(pp.normalize(np.asarray(tempMat), axis = 0).T)
         if v: print(eVec)
+=======
+        eVec = pFunc.fit_transform(pp.normalize(tempMat, axis = 1))
+        print(eVec.shape)
+>>>>>>> a891ba6314918addf603f77bfcb14cd5541cdb3f
         outEig.append(eVec)
 
     return outEig, outCst, outMot
 
+<<<<<<< HEAD
 #test code
 #a, b, c = genEig(loadData('data.txt'), 256, 2, 5, False)
+=======
+a, b = genEig(loadData('data.txt'), 256, 2, 5)
+print(a[0].shape)
+print(b[0].shape)
+>>>>>>> a891ba6314918addf603f77bfcb14cd5541cdb3f
