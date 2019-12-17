@@ -83,4 +83,7 @@ def load(company1, company2, competitors):
 if __name__ == '__main__':
     competitors = ['AVVIY', 'JEF', 'PGR', 'AIG', 'STFGX', 'BLK']
     data = load('BRK.A', 'BRK.B', competitors)
+    for i, col in data.items():
+        if np.sum(np.isna(col)) > 0:
+            print(col)
     exit(0)
