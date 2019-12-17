@@ -4,27 +4,16 @@ import torch.nn as nn
 
 class Generator(nn.Module):
 	
-	def __init__(self, num_attr, minibatch_size):
+	def __init__(self, num_attr, hidden_layer_size=500):
 		super(Generator, self).__init__()
 		self.num_attr = num_attr
-		self.minibatch_size = minibatch_size
+		self.hidden_layer_size = hidden_layer_size
+		self.L1 = nn.LSTM(num_attr, hidden_layer_size, 1)
+		self.L2 = nn.Linear(hidden_layer_size, 1)
 		
-		self.L1 = nn.Linear(num_attr, 500)
-		self.L2 = nn.Linear(500, 1)
+		self.hidden_cell = (torch.zeros(1,1,self.hidden_layer_size), torch.zeros(1,1,self.hidden_layer_size))
 		
 	def forward(self, x):
-		num_days = len(x)
-		num_batches = num_days - self.minibatch_size
-		out = torch.tensor([1,1])
-		compare = out
-		for i in range(num_batches):
-			batch_min = i
-			batch_max = i + self.minibatch_size
-			temp_x = x[batch_min:batch_max]
-			temp_x = self.L1(temp_x)
-			temp_x = self.L2(temp_x)
-			if not torch.equal(out, compare):
-				out = torch.cat([out, temp_x], 0)
-			else:
-				out = temp_x
-		return out
+		lstm_out, self.hidden_cell = self.L1(x.view(len(x), 1, -1), self.hidden_cell)
+		out = self.L2(lstm_out.view(len(x), -1))
+		return out[-1]

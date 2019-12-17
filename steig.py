@@ -42,9 +42,11 @@ def genEig(data, bufSz, gap, pDex):
         print("calculating primary component: ", i)
         pFunc = dc.PCA(n_components = 1)
         eVec = pFunc.fit_transform(pp.normalize(tempMat, axis = 1))
-        print(tempMat[0].shape)
+        print(eVec.shape)
         outEig.append(eVec)
 
     return outEig, outCst
 
-genEig(loadData('data.txt'), 256, 2, 5)
+a, b = genEig(loadData('data.txt'), 256, 2, 5)
+print(a[0].shape)
+print(b[0].shape)

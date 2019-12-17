@@ -60,17 +60,17 @@ def load(company1, company2, competitors):
     for name in competitors:
         data = get_av_data(name)
         c1[name] = data['adjusted close']
-	
     for i, col in c1.items():
         if np.sum(np.isnan(col)) > 0:
-            for j, val in zip(range(len(col)), col):
-                if np.isnan(val):
-                    c1[i][c1.index.values[j]] = np.mean(col)
-    np.savetxt('data.txt', c1.values, fmt='%f', delimiter=',')
+            for j, row in c1.iterrows():
+                if np.isnan(row[i]):
+                    c1[i][j] = np.mean(col)
+    print(c1.values)
+    np.savetxt('data.txt', c1, fmt='%f', delimiter=',')
 
 
 if __name__ == '__main__':
     competitors = ['JEF', 'PGR', 'AIG', 'STFGX', 'BLK']
     load('BRK.A', 'BRK.B', competitors)
-    print(pd.read_csv('data.txt', delimiter=',', header=None))
+    print(pd.read_csv('data.txt', delimiter=',', header=None)[[6]])
     exit(0)
