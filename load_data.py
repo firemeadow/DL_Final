@@ -85,5 +85,8 @@ if __name__ == '__main__':
     data = load('BRK.A', 'BRK.B', competitors)
     for i, col in data.items():
         if np.sum(np.isna(col)) > 0:
-            print(col)
+            for j, val in zip(range(len(col)), col):
+                if val.isna():
+                    col[j] = np.mean(col)
+            data[[i]] = col
     exit(0)
