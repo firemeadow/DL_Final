@@ -11,7 +11,7 @@ def loadData(fileName):
 # gap       space between samples
 # pDex      index of the current price in the feature vector
 def genEig(data, bufSz, gap, pDex):
-    assert data.shape[1] <= (bufSz / gap) #buffer too small, the eig dimensionality will line up to the sample size, not the number of features
+    #assert data.shape[1] <= (bufSz / gap) #buffer too small, the eig dimensionality will line up to the sample size, not the number of features
 
     outEig = []
     outCst = []
@@ -41,8 +41,10 @@ def genEig(data, bufSz, gap, pDex):
         #calculate the eigenvector over the gapped points
         print("calculating primary component: ", i)
         pFunc = dc.PCA(n_components = 1)
-        eVec = pFunc.fit_transform(pp.normalize(tempMat, axis = 0))
-        
+        eVec = pFunc.fit_transform(pp.normalize(tempMat, axis = 1))
+        print(tempMat[0].shape)
         outEig.append(eVec)
 
     return outEig, outCst
+
+genEig(loadData('data.txt'), 256, 2, 5)
