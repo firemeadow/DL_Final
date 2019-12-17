@@ -10,41 +10,44 @@ def loadData(fileName):
 # bufSz     size of eigencombing buffer
 # gap       space between samples
 # pDex      index of the current price in the feature vector
-def genEig(data, bufSz, gap, pDex):
-    #assert data.shape[1] <= (bufSz / gap) #buffer too small, the eig dimensionality will line up to the sample size, not the number of features
+def genEig(data, bufSz, gap, pDex, s = True, v = False):
+    print("working!")
+    if (data.shape[1] >= (bufSz / gap)):
+        print("your buffer is a bit small")
 
     outEig = []
     outCst = []
+    outMot = []
 
     #start after the buffer, don't include the last point
-    numPoints = data.shape[0] - (bufSz + gap)
+    numPoints = data.shape[0] - (bufSz * gap) - 1
     eigPoints = int(np.floor(bufSz / gap))
 
-    print(numPoints)
-    print(eigPoints)
+    print("points:              ", numPoints)
+    print("samples per eig:     ", eigPoints)
 
     for i in range(numPoints):
         #temp matrix to store points for this eigenvector
         tempMat = []
-        
         #create a list to store the sequence for this eigenvector
-        outCst.append([])
+        outCst.append([data[bufSz + i + gap][pDex]])
+        outMot.append([(data[bufSz + i + gap] - data[bufSz + i]) / gap])
         
         for j in range(eigPoints):
             tempMat.append(data[i + (j * gap)])
-            outCst[i].append(data[i + (j * gap)][pDex])
 
         #append the real price to the end of the sequence
-        print("adding real datapoint: ", bufSz + i + gap, "/", data.shape[0] - 1)
+        if s or v: print("adding real datapoint: ", bufSz + i + gap, "/", numPoints - 1)
         outCst[i].append(data[bufSz + i + gap][pDex])
 
         #calculate the eigenvector over the gapped points
-        print("calculating primary component: ", i)
+        if s or v: print("calculating primary component: ", i)
         pFunc = dc.PCA(n_components = 1)
-        eVec = pFunc.fit_transform(pp.normalize(tempMat, axis = 1))
-        print(tempMat[0].shape)
+        eVec = pFunc.fit_transform(pp.normalize(np.asarray(tempMat), axis = 0).T)
+        if v: print(eVec)
         outEig.append(eVec)
 
-    return outEig, outCst
+    return outEig, outCst, outMot
 
-genEig(loadData('data.txt'), 256, 2, 5)
+#test code
+#a, b, c = genEig(loadData('data.txt'), 256, 2, 5, False)
