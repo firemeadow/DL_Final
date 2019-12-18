@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib as plt
 from gen import Generator
 from disc import Discriminator
+from steig import *
 
 
 def discriminator_loss(real_output, fake_output, loss):
@@ -27,7 +28,6 @@ def train_step(data, label, gen_model, disc_model):
     loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     generated_price = gen_model(data).view(1, 1, 1)
     label = label.view(1, 1, 1)
-    print(generated_price)
     fake_output = disc_model(generated_price)
     real_output = disc_model(label)
 
@@ -36,7 +36,7 @@ def train_step(data, label, gen_model, disc_model):
     return gen_loss, disc_loss, gen_model, disc_model
 
 
-def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, prices):
+def train(eigen_portfolio, momentums, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES):
     gen_model = Generator(num_attr)
     gen_opt = optim.SGD(gen_model.parameters(), lr=LEARNING_RATE)
     disc_model = Discriminator()
@@ -44,12 +44,10 @@ def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, pr
     gens = []
     discs = []
     for epoch in range(NUM_EPOCHS):
-        for i in range(NUM_BATCHES):
+        for batch, mom in zip(eigen_portfolio, momentums):
             gen_opt.zero_grad()  # zero the gradient buffers
             disc_opt.zero_grad()
-            data_batch = data[i:i+BATCH_SIZE]
-            label = prices[0][i+BATCH_SIZE]
-            gen_loss, disc_loss, gen_model, disc_model = train_step(data_batch, label, gen_model, disc_model)
+            gen_loss, disc_loss, gen_model, disc_model = train_step(batch, mom, gen_model, disc_model)
             if epoch is not NUM_EPOCHS-1:
                 gen_loss.backward(retain_graph=True)
                 disc_loss.backward(retain_graph=True)
@@ -61,7 +59,8 @@ def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, pr
 
         gen = gen_loss.numpy().mean()
         disc = disc_loss.numpy().mean()
-
+        print(gen)
+        print(disc)
         gens.append(gen)
         discs.append(disc)
 
@@ -69,17 +68,17 @@ def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, pr
 
 
 if __name__ == '__main__':
-    data = pd.read_csv('data.txt', delimiter=',', header=None)
-    num_days = len(data) / 5
-    train_days = int(np.ceil(num_days * (3 / 5)))
-    num_attr = len(data.columns)
+    eigen_portfolio, _, momentums = genEig(loadData('data.txt'), 256, 2, 5, False, saveState = "lucasTest")
+    print(np.shape(momentums))
+    num_days = np.shape(eigen_portfolio)[0]
+    num_attr = np.shape(eigen_portfolio)[1]
+    eigen_portfolio = torch.tensor(np.reshape(eigen_portfolio, (num_days, num_attr)))
+    momentums = torch.tensor(momentums)
     LEARNING_RATE = 0.01
     NUM_EPOCHS = 100
-    BATCH_SIZE = 50
-    NUM_BATCHES = train_days - BATCH_SIZE
-    prices = torch.from_numpy(data[:train_days][4].values.astype(np.float32)).view(1, train_days)
-    train_data = torch.from_numpy(data[:train_days].values.astype(np.float32))
-    test_data = torch.from_numpy(data[train_days+1:].values.astype(np.float32))
+    BATCH_SIZE = 128
+    NUM_BATCHES = num_days - BATCH_SIZE
+    
 
-    gens, discs, generator, discriminator = train(train_data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, prices)
+    gens, discs, generator, discriminator = train(eigen_portfolio, momentums, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES)
 
