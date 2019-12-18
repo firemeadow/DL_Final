@@ -31,7 +31,7 @@ def genEig(data, bufSz, gap, pDex, s = True, v = False, saveState = None):
     outMot = []
 
     #start after the buffer, don't include the last point
-    numPoints = data.shape[0] - (bufSz * gap) - 1
+    numPoints = data.shape[0] - (bufSz + gap)
     eigPoints = int(np.floor(bufSz / gap))
 
     print("points:              ", numPoints)
@@ -42,7 +42,7 @@ def genEig(data, bufSz, gap, pDex, s = True, v = False, saveState = None):
         tempMat = []
         #create a list to store the sequence for this eigenvector
         outCst.append([data[bufSz + i + gap][pDex]])
-        outMot.append([(data[bufSz + i + gap][pDex] - data[bufSz + i][pDex]) / gap])
+        outMot.append([((data[bufSz + i + gap][pDex] - data[bufSz + i][pDex]) / data[bufSz + i][pDex]) * (100 / gap)])
         
         for j in range(eigPoints):
             tempMat.append(data[i + (j * gap)])
