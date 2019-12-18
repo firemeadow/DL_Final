@@ -25,7 +25,9 @@ def generator_loss(fake_output, loss):
 def train_step(data, label, gen_model, disc_model):
     pos_weight = torch.ones((1,))
     loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    generated_price = gen_model(data)
+    generated_price = gen_model(data).view(1, 1, 1)
+    label = label.view(1, 1, 1)
+    print(generated_price)
     fake_output = disc_model(generated_price)
     real_output = disc_model(label)
 
@@ -46,10 +48,14 @@ def train(data, num_attr, LEARNING_RATE, NUM_EPOCHS, BATCH_SIZE, NUM_BATCHES, pr
             gen_opt.zero_grad()  # zero the gradient buffers
             disc_opt.zero_grad()
             data_batch = data[i:i+BATCH_SIZE]
-            label = prices[i+BATCH_SIZE]
+            label = prices[0][i+BATCH_SIZE]
             gen_loss, disc_loss, gen_model, disc_model = train_step(data_batch, label, gen_model, disc_model)
-            gen_loss.backward()
-            disc_loss.backward()
+            if epoch is not NUM_EPOCHS-1:
+                gen_loss.backward(retain_graph=True)
+                disc_loss.backward(retain_graph=True)
+            else:
+                gen_loss.backward()
+                disc_loss.backward()
             gen_opt.step()
             disc_opt.step()
 
@@ -71,7 +77,7 @@ if __name__ == '__main__':
     NUM_EPOCHS = 100
     BATCH_SIZE = 50
     NUM_BATCHES = train_days - BATCH_SIZE
-    prices = torch.view(torch.from_numpy(data[:train_days][4].values.astype(np.float32)), 1, train_days)
+    prices = torch.from_numpy(data[:train_days][4].values.astype(np.float32)).view(1, train_days)
     train_data = torch.from_numpy(data[:train_days].values.astype(np.float32))
     test_data = torch.from_numpy(data[train_days+1:].values.astype(np.float32))
 
