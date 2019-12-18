@@ -23,7 +23,7 @@ def generator_loss(fake_output, loss):
 
 
 def train_step(data, label, gen_model, disc_model):
-    pos_weight = torch.ones((1,))
+    pos_weight = torch.ones((1,)) * 0.99
     loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     generated_price = gen_model(data).view(1, 1, 1)
     label = label.view(1, 1, 1)
